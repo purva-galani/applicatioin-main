@@ -9,9 +9,16 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.markwatson.service_vale"
     },
     "android": {
+      "useNextNotificationsApi": true,
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "RECEIVE_BOOT_COMPLETED",
+        "FOREGROUND_SERVICE"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/logo.png"
       },
@@ -49,6 +56,17 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/notification-icon.png",
+          "color": "#5E72E4",
+          "sounds": [
+            "./assets/sounds/notification.mp3"
+          ],
+          "mode": "production"
+        }
       ]
     ],
     "experiments": {
@@ -57,9 +75,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "685d6393-1dc6-4be4-b16a-9c83ab587eb8"
+        "projectId": "82646004-be0b-4887-bb51-c40ed7ce8258"
       }
     },
-    "owner": "vishva1793"
+    "owner": "purva_galani"
   }
 }

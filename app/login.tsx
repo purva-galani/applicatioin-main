@@ -7,11 +7,18 @@ import { account, databases } from '../lib/appwrite';
 import { styles } from '../constants/LoginScreen.styles';
 import { Linking } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import LinkPermissionModal from '../components/LinkPermissionModal';
+import { useNotification } from "@/context/NotificationContext";
+import { ThemedText } from '@/components/ThemedText';
 
 const DATABASE_ID = '681c428b00159abb5e8b';
 const COLLECTION_ID = '681c429800281e8a99bd';
 
 const LoginScreen = () => {
+    const { notification, expoPushToken, error } = useNotification();
+    if (error) {
+        console.error('Notification Error:', error);
+    }
     const params = useLocalSearchParams();
     const [isLogin, setIsLogin] = useState(true);
     const [email, setEmail] = useState('');
@@ -56,7 +63,7 @@ const LoginScreen = () => {
         checkSession();
     }, []);
 
-   
+
     useEffect(() => {
         if (params?.resetPassword === 'true' && params.userId && params.secret) {
             setResetModalVisible(true);
@@ -96,7 +103,7 @@ const LoginScreen = () => {
         return () => subscription.remove();
     }, []);
 
- if (isCheckingSession) {
+    if (isCheckingSession) {
         return (
             <View style={{ flex: 1, justifyContent: 'center' }}>
                 <ActivityIndicator size="large" />
@@ -224,213 +231,225 @@ const LoginScreen = () => {
     };
 
     return (
-        <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-            style={{ flex: 1 }}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
-        >
-            <ScrollView
-                contentContainerStyle={[styles.container]}
-                keyboardShouldPersistTaps="handled"
-                automaticallyAdjustContentInsets={true}
+        <>
+            <LinkPermissionModal />
+            <KeyboardAvoidingView
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                style={{ flex: 1 }}
+                keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
             >
-                <View style={styles.brandContainer}>
-                    <Image
-                        source={require('../assets/images/logo.jpg')}
-                        style={styles.logo}
-                        resizeMode="contain"
-                    />
-                </View>
+                <ScrollView
+                    contentContainerStyle={[styles.container]}
+                    keyboardShouldPersistTaps="handled"
+                    automaticallyAdjustContentInsets={true}
+                >
+                    <View style={styles.brandContainer}>
+                        <Image
+                            source={require('../assets/images/logo.jpg')}
+                            style={styles.logo}
+                            resizeMode="contain"
+                        />
+                    </View>
 
-                <Modal transparent animationType="fade" visible={forgotModalVisible}>
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalCard}>
-                            <Text style={styles.modalTitle}>Forgot Password</Text>
-                            <Text style={styles.modalSubtitle}>Enter your email to receive a recovery link</Text>
+                    <Modal transparent animationType="fade" visible={forgotModalVisible}>
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalCard}>
+                                <Text style={styles.modalTitle}>Forgot Password</Text>
+                                <Text style={styles.modalSubtitle}>Enter your email to receive a recovery link</Text>
+                                <TextInput
+                                    style={styles.modalInput}
+                                    placeholder="Enter your email"
+                                    placeholderTextColor="#999"
+                                    value={forgotEmail}
+                                    onChangeText={setForgotEmail}
+                                    keyboardType="email-address"
+                                    autoCapitalize="none"
+                                />
+
+                                <View style={styles.modalButtonGroup}>
+                                    <TouchableOpacity
+                                        style={[styles.modalButton, styles.secondaryButton]}
+                                        onPress={() => setForgotModalVisible(false)}
+                                    >
+                                        <Text style={styles.secondaryButtonText}>Cancel</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.modalButton, styles.primaryButton]}
+                                        onPress={handleSendOTP}
+                                    >
+                                        <Text style={styles.primaryButtonText}>Send OTP</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </View>
+                    </Modal>
+
+                    <Modal transparent animationType="fade" visible={resetModalVisible}>
+                        <View style={styles.modalOverlay}>
+                            <View style={styles.modalCard}>
+                                <Text style={styles.modalTitle}>Reset Password</Text>
+                                <View style={styles.passwordInputContainer}>
+                                    <TextInput
+                                        style={styles.modalInput}
+                                        placeholder="New Password"
+                                        placeholderTextColor="#999"
+                                        value={newPassword}
+                                        onChangeText={setNewPassword}
+                                        secureTextEntry={!showNewPassword}
+                                    />
+                                    <TouchableOpacity
+                                        style={styles.eyeIcon}
+                                        onPress={() => setShowNewPassword(!showNewPassword)}
+                                    >
+                                        <Ionicons
+                                            name={showNewPassword ? 'eye' : 'eye-off'}
+                                            size={20}
+                                            color="#888"
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+
+                                <TextInput
+                                    style={styles.modalInput}
+                                    placeholder="Confirm Password"
+                                    placeholderTextColor="#999"
+                                    value={resetConfirmPassword}
+                                    onChangeText={setResetConfirmPassword}
+                                    secureTextEntry={true}
+                                />
+
+                                <View style={styles.modalButtonGroup}>
+                                    <TouchableOpacity
+                                        style={[styles.modalButton, styles.secondaryButton]}
+                                        onPress={() => setResetModalVisible(false)}
+                                    >
+                                        <Text style={styles.secondaryButtonText}>Cancel</Text>
+                                    </TouchableOpacity>
+                                    <TouchableOpacity
+                                        style={[styles.modalButton, styles.primaryButton]}
+                                        onPress={handleResetPassword}
+                                    >
+                                        <Text style={styles.primaryButtonText}>Update Password</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        </View>
+                    </Modal>
+
+                    <View style={styles.authCard}>
+                        <Text style={styles.authTitle}>
+                            {isLogin ? 'Sign In as an admin or engineer' : 'Create Account'}
+                        </Text>
+                        {!isLogin && (
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.inputLabel}>Username</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Enter your username"
+                                    placeholderTextColor="#999"
+                                    value={username}
+                                    onChangeText={setUsername}
+                                />
+                            </View>
+                        )}
+
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.inputLabel}>Email Address</Text>
                             <TextInput
-                                style={styles.modalInput}
+                                style={styles.input}
                                 placeholder="Enter your email"
                                 placeholderTextColor="#999"
-                                value={forgotEmail}
-                                onChangeText={setForgotEmail}
+                                value={email}
+                                onChangeText={setEmail}
                                 keyboardType="email-address"
                                 autoCapitalize="none"
                             />
-
-                            <View style={styles.modalButtonGroup}>
-                                <TouchableOpacity
-                                    style={[styles.modalButton, styles.secondaryButton]}
-                                    onPress={() => setForgotModalVisible(false)}
-                                >
-                                    <Text style={styles.secondaryButtonText}>Cancel</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.modalButton, styles.primaryButton]}
-                                    onPress={handleSendOTP}
-                                >
-                                    <Text style={styles.primaryButtonText}>Send OTP</Text>
-                                </TouchableOpacity>
-                            </View>
                         </View>
-                    </View>
-                </Modal>
 
-                <Modal transparent animationType="fade" visible={resetModalVisible}>
-                    <View style={styles.modalOverlay}>
-                        <View style={styles.modalCard}>
-                            <Text style={styles.modalTitle}>Reset Password</Text>
+                        <View style={styles.inputContainer}>
+                            <Text style={styles.inputLabel}>Password</Text>
                             <View style={styles.passwordInputContainer}>
                                 <TextInput
-                                    style={styles.modalInput}
-                                    placeholder="New Password"
+                                    style={styles.passwordInput}
+                                    placeholder="Enter your password"
                                     placeholderTextColor="#999"
-                                    value={newPassword}
-                                    onChangeText={setNewPassword}
-                                    secureTextEntry={!showNewPassword}
+                                    value={password}
+                                    onChangeText={setPassword}
+                                    secureTextEntry={!showPassword}
                                 />
                                 <TouchableOpacity
                                     style={styles.eyeIcon}
-                                    onPress={() => setShowNewPassword(!showNewPassword)}
+                                    onPress={() => setShowPassword(!showPassword)}
                                 >
                                     <Ionicons
-                                        name={showNewPassword ? 'eye' : 'eye-off'}
+                                        name={showPassword ? 'eye' : 'eye-off'}
                                         size={20}
                                         color="#888"
                                     />
                                 </TouchableOpacity>
                             </View>
-
-                            <TextInput
-                                style={styles.modalInput}
-                                placeholder="Confirm Password"
-                                placeholderTextColor="#999"
-                                value={resetConfirmPassword}
-                                onChangeText={setResetConfirmPassword}
-                                secureTextEntry={true}
-                            />
-
-                            <View style={styles.modalButtonGroup}>
-                                <TouchableOpacity
-                                    style={[styles.modalButton, styles.secondaryButton]}
-                                    onPress={() => setResetModalVisible(false)}
-                                >
-                                    <Text style={styles.secondaryButtonText}>Cancel</Text>
-                                </TouchableOpacity>
-                                <TouchableOpacity
-                                    style={[styles.modalButton, styles.primaryButton]}
-                                    onPress={handleResetPassword}
-                                >
-                                    <Text style={styles.primaryButtonText}>Update Password</Text>
-                                </TouchableOpacity>
-                            </View>
                         </View>
-                    </View>
-                </Modal>
 
-                <View style={styles.authCard}>
-                    <Text style={styles.authTitle}>
-                        {isLogin ? 'Sign In as an admin or engineer' : 'Create Account'}
-                    </Text>
-                    {!isLogin && (
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.inputLabel}>Username</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Enter your username"
-                                placeholderTextColor="#999"
-                                value={username}
-                                onChangeText={setUsername}
-                            />
-                        </View>
-                    )}
-
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.inputLabel}>Email Address</Text>
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Enter your email"
-                            placeholderTextColor="#999"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                            autoCapitalize="none"
-                        />
-                    </View>
-
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.inputLabel}>Password</Text>
-                        <View style={styles.passwordInputContainer}>
-                            <TextInput
-                                style={styles.passwordInput}
-                                placeholder="Enter your password"
-                                placeholderTextColor="#999"
-                                value={password}
-                                onChangeText={setPassword}
-                                secureTextEntry={!showPassword}
-                            />
-                            <TouchableOpacity
-                                style={styles.eyeIcon}
-                                onPress={() => setShowPassword(!showPassword)}
-                            >
-                                <Ionicons
-                                    name={showPassword ? 'eye' : 'eye-off'}
-                                    size={20}
-                                    color="#888"
+                        {!isLogin && (
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.inputLabel}>Confirm Password</Text>
+                                <TextInput
+                                    style={styles.input}
+                                    placeholder="Confirm your password"
+                                    placeholderTextColor="#999"
+                                    value={confirmPassword}
+                                    onChangeText={setConfirmPassword}
+                                    secureTextEntry={true}
                                 />
+                            </View>
+                        )}
+
+                        {isLogin && (
+                            <TouchableOpacity
+                                style={styles.forgotPasswordButton}
+                                onPress={handleForgotPassword}
+                            >
+                                <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+                            </TouchableOpacity>
+                        )}
+
+                        <TouchableOpacity
+                            style={styles.authButton}
+                            onPress={isLogin ? handleLogin : handleRegister}
+                        >
+                            <Text style={styles.authButtonText}>
+                                {isLogin ? 'Sign In' : 'Sign Up'}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <View style={styles.authFooter}>
+                            <Text style={styles.authFooterText}>
+                                {isLogin ? "Don't have an account?" : "Already have an account?"}
+                            </Text>
+                            <TouchableOpacity
+                                onPress={() => {
+                                    setIsLogin(!isLogin);
+                                    resetFields();
+                                }}
+                            >
+                                <Text style={styles.authFooterLink}>
+                                    {isLogin ? 'Sign Up' : 'Sign In'}
+                                </Text>
                             </TouchableOpacity>
                         </View>
                     </View>
-
-                    {!isLogin && (
-                        <View style={styles.inputContainer}>
-                            <Text style={styles.inputLabel}>Confirm Password</Text>
-                            <TextInput
-                                style={styles.input}
-                                placeholder="Confirm your password"
-                                placeholderTextColor="#999"
-                                value={confirmPassword}
-                                onChangeText={setConfirmPassword}
-                                secureTextEntry={true}
-                            />
-                        </View>
-                    )}
-
-                    {isLogin && (
-                        <TouchableOpacity
-                            style={styles.forgotPasswordButton}
-                            onPress={handleForgotPassword}
-                        >
-                            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-                        </TouchableOpacity>
-                    )}
-
-                    <TouchableOpacity
-                        style={styles.authButton}
-                        onPress={isLogin ? handleLogin : handleRegister}
-                    >
-                        <Text style={styles.authButtonText}>
-                            {isLogin ? 'Sign In' : 'Sign Up'}
-                        </Text>
-                    </TouchableOpacity>
-
-                    <View style={styles.authFooter}>
-                        <Text style={styles.authFooterText}>
-                            {isLogin ? "Don't have an account?" : "Already have an account?"}
-                        </Text>
-                        <TouchableOpacity
-                            onPress={() => {
-                                setIsLogin(!isLogin);
-                                resetFields();
-                            }}
-                        >
-                            <Text style={styles.authFooterLink}>
-                                {isLogin ? 'Sign Up' : 'Sign In'}
-                            </Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-            </ScrollView>
-        </KeyboardAvoidingView>
+                </ScrollView>
+                <ThemedText type="subtitle" style={{ color: "red" }}>
+                    Your push token:
+                </ThemedText>
+                <ThemedText>{expoPushToken}</ThemedText>
+                <ThemedText type="subtitle">Latest notification:</ThemedText>
+                <ThemedText>{notification?.request.content.title}</ThemedText>
+                <ThemedText>
+                    {JSON.stringify(notification?.request.content.data, null, 2)}
+                </ThemedText>
+            </KeyboardAvoidingView>
+        </>
     );
 };
 

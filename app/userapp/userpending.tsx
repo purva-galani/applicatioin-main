@@ -11,7 +11,7 @@ import { Platform, Linking } from 'react-native';
 
 const DATABASE_ID = '681c428b00159abb5e8b';
 const COLLECTION_ID = '681d92600018a87c1478';
-const NOTIFICATIONS_COLLECTION_ID = 'note_id';
+const NOTIFICATIONS_COLLECTION_ID = 'admin_id';
 
 type Service = {
   id: string;
@@ -169,9 +169,8 @@ const PendingServicesScreenUser = () => {
         ID.unique(),
         {
           description,
-          IsRead: false, // Changed to match collection schema
+          IsRead: false, 
           userEmail,
-          // Remove createdAt as Appwrite handles this automatically
         }
       );
       console.log('Notification created successfully');
